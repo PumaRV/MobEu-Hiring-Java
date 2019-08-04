@@ -2,6 +2,7 @@ package com.mobiquityinc.packer;
 
 import com.mobiquityinc.exception.APIException;
 import com.mobiquityinc.model.Item;
+import com.mobiquityinc.util.ItemComparator;
 import org.apache.log4j.Logger;
 
 import java.io.BufferedReader;
@@ -43,7 +44,10 @@ public class Packer {
         return null;
     }
 
+    //To solve the calculation I'm using Dynamic programming.
     private static String solveForItemsAndCapacity(final List<Item> items, final int capacity) {
+        //Sort by weight so Dynamic programming returns the values with less weight in case of combinations with same price
+        items.sort(new ItemComparator());
         final StringBuilder stringBuilder = new StringBuilder();
        final int[][] matrix = new int[items.size() + 1][capacity + 1];
 
@@ -53,11 +57,14 @@ public class Packer {
 
         for (int i = 1; i <= items.size(); i++) {
             for(int j = 0; j<= capacity; j++ ){
-                if(items.get(i-1).getWeight() > j){
+                final Item previousItem = items.get(i-1);
+                final int previousWeight = previousItem.getWeight();
+                final int previousValue = previousItem.getValue();
+                if(previousWeight > j){
                     matrix[i][j] = matrix[i-1][j];
                 }
                 else{
-                    matrix[i][j] = Math.max(matrix[i-1][j], matrix[i-1][j-items.get(i-1).getWeight()]+ items.get(i-1).getValue());
+                    matrix[i][j] = Math.max(matrix[i-1][j], matrix[i-1][j-previousWeight]+ previousValue);
                 }
             }
         }
@@ -66,10 +73,20 @@ public class Packer {
         int totalWeight = capacity;
         for (int i = items.size(); i>0 && total > 0; i--){
             if(total != matrix[i-1][totalWeight]){
-                stringBuilder.append(items.get(i-1).getId());
-                total -= items.get(i-1).getValue();
-                totalWeight -= items.get(i-1).getWeight();
+                final Item previousItem = items.get(i-1);
+                total -= previousItem.getValue();
+                totalWeight -= previousItem.getWeight();
+                if(stringBuilder.length()==0){
+                    stringBuilder.append(previousItem.getId());
+                }
+                else {
+                    stringBuilder.append(", ");
+                    stringBuilder.append(previousItem.getId());
+                }
             }
+        }
+        if(stringBuilder.length()==0){
+            return "-";
         }
         return stringBuilder.toString();
     }
@@ -106,6 +123,8 @@ public class Packer {
             }
             try {
                 final int id = Integer.parseInt(itemProperties[0].trim());
+                //Had to convert weights to integer in order to use dynamic programming.
+                //weights with more than 2 decimal places will be rounded.
                 final int weight = (int) Double.parseDouble(itemProperties[1].trim())*100;
                 final int value = Integer.parseInt(itemProperties[2].substring(1).trim());
                 if (weight > 10000 || value > 100) {
@@ -119,4 +138,6 @@ public class Packer {
         }
         return items;
     }
+
+
 }
