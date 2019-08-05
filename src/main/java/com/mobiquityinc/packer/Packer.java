@@ -46,8 +46,9 @@ public class Packer {
             }
 
             return stringBuilder.toString();
+        } else {
+            throw new APIException("Exception reading input file");
         }
-        return null;
     }
 
     //To solve the calculation I'm using Dynamic programming.
@@ -85,7 +86,7 @@ public class Packer {
                 if (stringBuilder.length() == 0) {
                     stringBuilder.append(previousItem.getId());
                 } else {
-                    stringBuilder.append(", ");
+                    stringBuilder.append(",");
                     stringBuilder.append(previousItem.getId());
                 }
             }
